@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Österreicher Counter</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: transparent;
+    font-family: 'Arial Black', 'DejaVu Sans', Impact, sans-serif;
+    padding: 20px;
+  }
+  
+  .banner {
+    background: #000;
+    border: 5px solid #fff;
+    border-radius: 14px;
+    padding: 20px 32px;
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 8px 30px rgba(237, 41, 57, 0.4);
+  }
+  
+  .flag {
+    width: 64px;
+    height: 44px;
+    border-radius: 5px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid #fff;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  }
+  
+  .flag div { flex: 1; }
+  
+  .text {
+    color: #fff;
+    font-size: 36px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 900;
+    text-shadow: 
+      3px 3px 0 #000,
+      -1px -1px 0 #000,
+      1px -1px 0 #000,
+      -1px 1px 0 #000,
+      1px 1px 0 #000;
+    white-space: nowrap;
+  }
+  
+  .count {
+    color: #ed2939;
+    font-size: 42px;
+    background: #fff;
+    padding: 4px 18px;
+    border-radius: 10px;
+    margin: 0 8px;
+    text-shadow: none;
+    display: inline-block;
+    min-width: 65px;
+    text-align: center;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s;
+  }
+  
+  .count.update { transform: scale(1.15); }
+</style>
+</head>
+<body>
+  <div class="banner">
+    <div class="flag">
+      <div style="background:#ed2939"></div>
+      <div style="background:#fff"></div>
+      <div style="background:#ed2939"></div>
+    </div>
+    <div class="text">
+      Gerade sind <span class="count" id="counter">0</span> Österreicher im Chat
+    </div>
+  </div>
+
+<script>
+  const counter = document.getElementById('counter');
+  let currentCount = 0;
+  
+  function updateCount(newCount) {
+    if (newCount !== currentCount) {
+      currentCount = newCount;
+      counter.textContent = newCount;
+      counter.classList.add('update');
+      setTimeout(() => counter.classList.remove('update'), 200);
+    }
+  }
+  
+  function connect() {
+    try {
+      const ws = new WebSocket('ws://localhost:21213/');
+      
+      ws.onopen = () => console.log('TikFinity verbunden');
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === 'roomUser' && data.data) {
+            if (data.data.viewerCount !== undefined) updateCount(data.data.viewerCount);
+          } else if (data.event === 'viewerCount' && data.data !== undefined) {
+            updateCount(data.data);
+          } else if (data.viewerCount !== undefined) {
+            updateCount(data.viewerCount);
+          }
+        } catch(e) {}
+      };
+      
+      ws.onclose = () => setTimeout(connect, 3000);
+      ws.onerror = () => ws.close();
+    } catch(e) {
+      setTimeout(connect, 3000);
+    }
+  }
+  
+  connect();
+</script>
+</body>
+</html>
